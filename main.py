@@ -1,14 +1,24 @@
-import asyncio
 import requests
 from datetime import datetime, UTC
 from telegram import Bot
 from flask import Flask
 import os
 
+# Flask app
 app = Flask(__name__)
 
-TELEGRAM_TOKEN = os.environ['TELEGRAM_TOKEN']
-CHAT_ID = int(os.environ['CHAT_ID'])
+# Wczytaj dane z environment variables Render.com
+TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
+CHAT_ID = os.environ.get('CHAT_ID')
+
+# Rzutuj CHAT_ID na int jeśli istnieje
+if CHAT_ID:
+    CHAT_ID = int(CHAT_ID)
+else:
+    raise Exception("Brak CHAT_ID w zmiennych środowiskowych!")
+
+if not TELEGRAM_TOKEN:
+    raise Exception("Brak TELEGRAM_TOKEN w zmiennych środowiskowych!")
 
 
 def get_free_epic_games():
@@ -40,23 +50,25 @@ def get_free_epic_games():
     return free_games
 
 
-async def send_games():
+def send_games():
     bot = Bot(token=TELEGRAM_TOKEN)
     games = get_free_epic_games()
-    message = "\n".join(
-        games) if games else "Brak darmowych gier w tym momencie 🎮"
-    await bot.send_message(chat_id=CHAT_ID, text=message)
+    message = "\n".join(games) if games else "Brak darmowych gier w tym momencie 🎮"
+    bot.send_message(chat_id=CHAT_ID, text=message)
 
 
 @app.route("/")
 def home():
-    return "Bot działa!"
+    return "✅ Bot działa!"
 
 
 @app.route("/run")
 def run_bot():
-    asyncio.run(send_games())
-    return "Wiadomość wysłana ✅"
+    try:
+        send_games()
+        return "✅ Wiadomość wysłana"
+    except Exception as e:
+        return f"❌ Błąd: {e}"
 
 
 if __name__ == "__main__":

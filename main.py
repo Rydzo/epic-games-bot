@@ -44,8 +44,17 @@ def get_free_epic_games():
             now = datetime.now(UTC)
 
             if start <= now <= end:
-                link = f"https://store.epicgames.com/pl/p/{game['productSlug']}"
-                free_games.append(f"🎮 {title} - {link}")
+                slug = game.get('productSlug')
+                if not slug:
+                    mappings = game.get('catalogNs', {}).get('mappings')
+                    if mappings and len(mappings) > 0:
+                        slug = mappings[0].get('pageSlug')
+
+                if slug:
+                    link = f"https://store.epicgames.com/pl/p/{slug}"
+                    free_games.append(f"🎮 {title} - {link}")
+                else:
+                    free_games.append(f"🎮 {title} - (brak linku)")
 
     return free_games
 
@@ -54,7 +63,11 @@ def send_games():
     bot = Bot(token=TELEGRAM_TOKEN)
     games = get_free_epic_games()
     message = "\n".join(games) if games else "Brak darmowych gier w tym momencie 🎮"
-    bot.send_message(chat_id=CHAT_ID, text=message)
+
+    # Dziel wiadomość na segmenty do 4096 znaków
+    max_length = 4096
+    for i in range(0, len(message), max_length):
+        bot.send_message(chat_id=CHAT_ID, text=message[i:i + max_length])
 
 
 @app.route("/")

@@ -1,25 +1,14 @@
+import os
 import requests
 from datetime import datetime, UTC
 from telegram import Bot
-from flask import Flask
-import os
+from dotenv import load_dotenv
 
-# Flask app
-app = Flask(__name__)
+# Wczytaj dane z .env
+load_dotenv()
 
-# Wczytaj dane z environment variables Render.com
-TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
-CHAT_ID = os.environ.get('CHAT_ID')
-
-# Rzutuj CHAT_ID na int jeśli istnieje
-if CHAT_ID:
-    CHAT_ID = int(CHAT_ID)
-else:
-    raise Exception("Brak CHAT_ID w zmiennych środowiskowych!")
-
-if not TELEGRAM_TOKEN:
-    raise Exception("Brak TELEGRAM_TOKEN w zmiennych środowiskowych!")
-
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+CHAT_ID = int(os.getenv("CHAT_ID"))
 
 def get_free_epic_games():
     url = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=pl&country=PL&allowCountries=PL"
@@ -58,31 +47,14 @@ def get_free_epic_games():
 
     return free_games
 
-
 def send_games():
     bot = Bot(token=TELEGRAM_TOKEN)
     games = get_free_epic_games()
     message = "\n".join(games) if games else "Brak darmowych gier w tym momencie 🎮"
 
-    # Dziel wiadomość na segmenty do 4096 znaków
     max_length = 4096
     for i in range(0, len(message), max_length):
         bot.send_message(chat_id=CHAT_ID, text=message[i:i + max_length])
 
-
-@app.route("/")
-def home():
-    return "✅ Bot działa!"
-
-
-@app.route("/run")
-def run_bot():
-    try:
-        send_games()
-        return "✅ Wiadomość wysłana"
-    except Exception as e:
-        return f"❌ Błąd: {e}"
-
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    send_games()
